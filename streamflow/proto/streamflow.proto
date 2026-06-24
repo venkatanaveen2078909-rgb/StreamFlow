@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package streamflow.proto;
+
+option cc_enable_arenas = true;
+
+// Service definition for Broker clusters and inter-node coordination
+service BrokerService {
+    rpc Publish (PublishRequest) returns (PublishResponse);
+    rpc Consume (ConsumeRequest) returns (ConsumeResponse);
+    rpc FetchMetadata (MetadataRequest) returns (MetadataResponse);
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+    rpc ReplicateLogs (ReplicationRequest) returns (ReplicationResponse);
+    rpc RequestVote (VoteRequest) returns (VoteResponse);
+    rpc AppendEntries (AppendEntriesRequest) returns (AppendEntriesResponse);
+}
+
+// Publish payload metadata and structure
+message MessageRecord {
+    int64 offset = 1;
+    int64 timestamp = 2;
+    string key = 3;
+    bytes payload = 4;
+    uint32 checksum = 5;
+    string compression_type = 6; // "none", "snappy", "gzip", "zstd"
+}
+
+message PublishRequest {
+    string topic = 1;
+    int32 partition_id = 2;
+    repeated MessageRecord messages = 3;
+    int32 required_acks = 4; // 0, 1, -1 (all)
+    int32 timeout_ms = 5;
+}
+
+message PublishResponse {
+    int32 error_code = 1; // 0 for OK, non-zero for replica failure, partition leader election, etc.
+    int64 base_offset = 2;
+    int64 log_append_time_ms = 3;
+    string error_message = 4;
+}
+
+// Consume requested specifications
+message ConsumeRequest {
+    string topic = 1;
+    int32 partition_id = 2;
+    int64 fetch_offset = 3;
+    int32 max_bytes = 4;
+    string consumer_id = 5;
+}
+
+message ConsumeResponse {
+    int32 error_code = 1;
+    repeated MessageRecord messages = 2;
+    int64 high_watermark = 3; // Best offset committed in ISR
+    string error_message = 4;
+}
+
+// Topic & Partition configurations
+message MetadataRequest {
+    repeated string topics = 1;
+}
+
+message BrokerEndpoint {
+    int32 node_id = 1;
+    string host = 2;
+    int32 port = 3;
+    bool is_alive = 4;
+}
+
+message PartitionMetadata {
+    int32 partition_id = 1;
+    int32 leader_id = 2;
+    repeated int32 replicas = 3;
+    repeated int32 in_sync_replicas = 4;
+    int64 log_start_offset = 5;
+    int64 log_end_offset = 6;
+}
+
+message TopicMetadata {
+    string topic = 1;
+    repeated PartitionMetadata partitions = 2;
+    int32 error_code = 3;
+}
+
+message MetadataResponse {
+    repeated BrokerEndpoint brokers = 1;
+    repeated TopicMetadata topics = 2;
+}
+
+// Cluster Node Heartbeat for status tracking
+message HeartbeatRequest {
+    int32 sender_node_id = 1;
+    int64 timestamp = 2;
+    int32 active_leader_count = 3;
+}
+
+message HeartbeatResponse {
+    bool acknowledgent = 1;
+    int32 cluster_leader_id = 2;
+}
+
+// Data synchronization replication
+message ReplicationRequest {
+    int32 leader_node_id = 1;
+    string topic = 2;
+    int32 partition_id = 3;
+    int64 leader_offset = 4;
+    repeated MessageRecord records = 5;
+}
+
+message ReplicationResponse {
+    int32 node_id = 1;
+    int64 last_replicated_offset = 2;
+    bool success = 3;
+}
+
+// RAFT Consensus Election Schemas
+message VoteRequest {
+    int32 term = 1;
+    int32 candidate_id = 2;
+    int64 last_log_index = 3;
+    int32 last_log_term = 4;
+}
+
+message VoteResponse {
+    int32 term = 1;
+    bool vote_granted = 2;
+}
+
+message AppendEntriesRequest {
+    int32 term = 1;
+    int32 leader_id = 2;
+    int64 prev_log_index = 3;
+    int32 prev_log_term = 4;
+    repeated MessageRecord entries = 5;
+    int64 leader_commit_index = 6;
+}
+
+message AppendEntriesResponse {
+    int32 term = 1;
+    bool success = 2;
+    int64 match_index = 3;
+}

@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  broker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streamflow-broker-1
+    command: ["./streamflow_broker", "--node-id=1", "--port=9092", "--peers=1,2,3"]
+    ports:
+      - "9092:9092"
+    volumes:
+      - broker-1-data:/var/lib/streamflow
+    healthcheck:
+      test: ["CMD", "./streamflow", "cluster", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  broker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streamflow-broker-2
+    command: ["./streamflow_broker", "--node-id=2", "--port=9093", "--peers=1,2,3"]
+    ports:
+      - "9093:9093"
+    volumes:
+      - broker-2-data:/var/lib/streamflow
+    healthcheck:
+      test: ["CMD", "./streamflow", "cluster", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  broker-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streamflow-broker-3
+    command: ["./streamflow_broker", "--node-id=3", "--port=9094", "--peers=1,2,3"]
+    ports:
+      - "9094:9094"
+    volumes:
+      - broker-3-data:/var/lib/streamflow
+    healthcheck:
+      test: ["CMD", "./streamflow", "cluster", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  broker-1-data:
+  broker-2-data:
+  broker-3-data:

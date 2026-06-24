@@ -1,0 +1,6 @@
+{
+  "name": "StreamFlow",
+  "description": "StreamFlow is a modern distributed event streaming platform built in C++20/23 with an immersive interactive distributed systems cockpit and simulation playground.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
